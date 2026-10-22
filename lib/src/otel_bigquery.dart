@@ -1,13 +1,13 @@
-// Licensed under the Dartastic Pro Software License Agreement.
+// Licensed under the Apache License, Version 2.0
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_bigquery_suppression.dart';
 
 const _tracerName = 'dartastic_otel_libs_bigquery';
 
-Tracer _tracer() => OTel.tracerProvider().getTracer(_tracerName);
+APITracer _tracer() => OTelAPI.tracerProvider().getTracer(_tracerName);
 
 const _maxStatementLength = 1024;
 String _truncate(String s) =>
@@ -15,6 +15,7 @@ String _truncate(String s) =>
 
 /// Pair returned from `tracedBigqueryQuery` callback.
 class BigqueryQueryResult<T> {
+  /// Creates a result.
   const BigqueryQueryResult({
     required this.value,
     this.jobId,
@@ -22,6 +23,8 @@ class BigqueryQueryResult<T> {
     this.totalRows,
     this.cacheHit,
   });
+
+  /// The value returned to the caller.
   final T value;
   final String? jobId;
   final int? totalBytesProcessed;
@@ -55,32 +58,32 @@ Future<T> tracedBigqueryQuery<T>({
   final span = _tracer().startSpan(
     'bigquery ${m['db.operation']}',
     kind: SpanKind.client,
-    attributes: OTel.attributesFromMap(m),
+    attributes: OTelAPI.attributesFromMap(m),
   );
   try {
     final r = await invoke();
     final extras = <Attribute<Object>>[];
     if (r.jobId != null) {
-      extras.add(OTel.attributeString('bigquery.job.id', r.jobId!));
+      extras.add(OTelAPI.attributeString('bigquery.job.id', r.jobId!));
     }
     if (r.totalBytesProcessed != null) {
-      extras.add(OTel.attributeInt(
+      extras.add(OTelAPI.attributeInt(
         'bigquery.total_bytes_processed',
         r.totalBytesProcessed!,
       ));
     }
     if (r.totalRows != null) {
-      extras.add(OTel.attributeInt('db.row_count', r.totalRows!));
+      extras.add(OTelAPI.attributeInt('db.row_count', r.totalRows!));
     }
     if (r.cacheHit != null) {
-      extras.add(OTel.attributeBool('bigquery.cache_hit', r.cacheHit!));
+      extras.add(OTelAPI.attributeBool('bigquery.cache_hit', r.cacheHit!));
     }
-    if (extras.isNotEmpty) span.addAttributes(OTel.attributes(extras));
+    if (extras.isNotEmpty) span.addAttributes(OTelAPI.attributes(extras));
     return r.value;
   } catch (e, st) {
-    span.addAttributes(OTel.attributes([
-      OTel.attributeString(
-        ErrorResource.errorType.key,
+    span.addAttributes(OTelAPI.attributes([
+      OTelAPI.attributeString(
+        ErrorAttributes.errorType.key,
         e.runtimeType.toString(),
       ),
     ]));
